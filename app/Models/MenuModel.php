@@ -18,8 +18,9 @@ class MenuModel extends Model
     // Tipe kembalian data (object atau array)
     protected $returnType = 'array';
 
-    // Aktifkan soft delete (false = hapus permanen)
-    protected $useSoftDeletes = false;
+    // Aktifkan soft delete – hapus data akan ditandai deleted_at, bukan dihapus permanen
+    protected $useSoftDeletes = true;
+    protected $deletedField   = 'deleted_at';
 
     // Kolom yang boleh diisi (mass assignment)
     protected $allowedFields = [
@@ -27,6 +28,8 @@ class MenuModel extends Model
         'kategori',
         'harga',
         'deskripsi',
+        'gambar',     // nama file foto menu
+        'deleted_at', // diperlukan untuk operasi restore
     ];
 
     // Aktifkan timestamps otomatis
@@ -81,5 +84,19 @@ class MenuModel extends Model
         }
 
         return $this->orderBy('nama_menu', 'ASC')->findAll();
+    }
+
+    /**
+     * Pulihkan data menu yang sudah di-soft delete
+     * (set deleted_at = NULL agar muncul kembali di daftar aktif)
+     *
+     * @param int $id ID menu yang akan dipulihkan
+     * @return bool
+     */
+    public function restore(int $id): bool
+    {
+        return $this->db->table($this->table)
+                        ->where($this->primaryKey, $id)
+                        ->update([$this->deletedField => null]);
     }
 }

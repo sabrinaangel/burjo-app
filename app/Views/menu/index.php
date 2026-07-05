@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // Sertakan template header
 include APPPATH . 'Views/templates/header.php';
 ?>
@@ -97,6 +97,37 @@ include APPPATH . 'Views/templates/header.php';
                         🥤 Minuman
                     </a>
 
+                    <!-- Tombol Sampah Menu -->
+                    <a href="<?= base_url('/menu/trash') ?>"
+                       class="text-decoration-none d-inline-flex align-items-center gap-1"
+                       style="
+                           padding: 8px 14px;
+                           border-radius: 10px;
+                           border: 1.5px solid #e05555;
+                           color: #e05555;
+                           font-size: 0.85rem;
+                           font-weight: 600;
+                           background: transparent;
+                           transition: all 0.2s ease;
+                       "
+                       onmouseover="this.style.background='#e05555';this.style.color='#fff';"
+                       onmouseout="this.style.background='transparent';this.style.color='#e05555';">
+                        <i class="bi bi-trash3"></i>
+                        Sampah
+                        <?php if ($trashCount > 0): ?>
+                            <span style="
+                                background: #e05555;
+                                color: #fff;
+                                border-radius: 999px;
+                                padding: 1px 7px;
+                                font-size: 0.75rem;
+                                font-weight: 700;
+                                line-height: 1.4;
+                                transition: background 0.2s ease;
+                            "><?= $trashCount ?></span>
+                        <?php endif; ?>
+                    </a>
+
                     <!-- Tombol Tambah Menu -->
                     <a href="<?= base_url('/menu/create') ?>" class="btn-burjo-primary text-decoration-none d-inline-flex align-items-center gap-2">
                         <i class="bi bi-plus-lg"></i> Tambah
@@ -129,22 +160,44 @@ include APPPATH . 'Views/templates/header.php';
                 <?php foreach ($menu as $item): ?>
                     <div class="col">
                         <div class="card-burjo h-100" style="border-radius:16px; overflow:hidden;">
-                            <!-- Card Header: Emoji & Kategori -->
+                            <!-- Card Header: Gambar / Emoji & Kategori -->
                             <div style="
                                 background: <?= $item['kategori'] === 'Makanan'
                                     ? 'linear-gradient(135deg, #fff5ee, #ffe8d6)'
                                     : 'linear-gradient(135deg, #eff8ff, #daeeff)' ?>;
-                                padding: 24px 20px 16px;
+                                padding: 0;
                                 text-align: center;
                                 border-bottom: 1px solid rgba(0,0,0,0.05);
+                                position: relative;
+                                overflow: hidden;
                             ">
-                                <div style="font-size: 3rem; margin-bottom: 8px;">
-                                    <?= $item['kategori'] === 'Makanan' ? '🍛' : '🥤' ?>
+                                <?php
+                                    // Cek apakah menu punya foto yang sudah diupload
+                                    $adaFoto = !empty($item['gambar']) &&
+                                               file_exists(FCPATH . 'uploads/menu/' . $item['gambar']);
+                                ?>
+
+                                <?php if ($adaFoto): ?>
+                                <!-- Tampilkan foto asli menu -->
+                                <img src="<?= base_url('uploads/menu/' . $item['gambar']) ?>"
+                                     alt="<?= esc($item['nama_menu']) ?>"
+                                     style="width:100%; height:160px; object-fit:cover; display:block;">
+                                <?php else: ?>
+                                <!-- Fallback: tampilkan emoji jika tidak ada foto -->
+                                <div style="padding:24px 20px 16px;">
+                                    <div style="font-size: 3rem; margin-bottom: 8px;">
+                                        <?= $item['kategori'] === 'Makanan' ? '🍛' : '🥤' ?>
+                                    </div>
                                 </div>
-                                <span class="badge-<?= strtolower($item['kategori']) ?>">
-                                    <?= $item['kategori'] === 'Makanan' ? '🍽️' : '🥤' ?>
-                                    <?= esc($item['kategori']) ?>
-                                </span>
+                                <?php endif; ?>
+
+                                <!-- Badge kategori (selalu tampil) -->
+                                <div style="padding: <?= $adaFoto ? '8px 12px' : '0 12px 12px' ?>;">
+                                    <span class="badge-<?= strtolower($item['kategori']) ?>">
+                                        <?= $item['kategori'] === 'Makanan' ? '🍽️' : '🥤' ?>
+                                        <?= esc($item['kategori']) ?>
+                                    </span>
+                                </div>
                             </div>
 
                             <!-- Card Body -->

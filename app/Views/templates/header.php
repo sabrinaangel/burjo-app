@@ -437,9 +437,36 @@
                     <i class="bi bi-grid-3x3-gap-fill me-1"></i>Menu
                 </a>
                 <a href="<?= base_url('/menu/create') ?>"
-                   class="nav-link-burjo <?= str_contains(uri_string(), 'create') ? 'active' : '' ?>">
+                   class="nav-link-burjo <?= (str_contains(uri_string(), 'menu') && str_contains(uri_string(), 'create')) ? 'active' : '' ?>">
                     <i class="bi bi-plus-circle-fill me-1"></i>Tambah
                 </a>
+<a href="<?= base_url('/pelanggan') ?>"
+                   class="nav-link-burjo <?= str_starts_with(uri_string(), 'pelanggan') ? 'active' : '' ?>">
+                    <i class="bi bi-people-fill me-1"></i>Pelanggan
+                </a>
+
+                <a href="<?= base_url('/settings') ?>"
+                   class="nav-link-burjo <?= str_starts_with(uri_string(), 'settings') ? 'active' : '' ?>">
+                    <i class="bi bi-gear-fill me-1"></i>Pengaturan
+                </a>
+
+                <?php if (session()->get('user_id')): ?>
+                <!-- Divider -->
+                <div style="width:1px; height:24px; background:rgba(255,255,255,0.2); margin:0 4px;"></div>
+                <!-- Nama Admin -->
+                <span class="nav-link-burjo" style="cursor:default; opacity:0.85;">
+                    <i class="bi bi-person-circle me-1"></i>
+                    <?= esc(session()->get('user_name')) ?>
+                </span>
+                <!-- Tombol Logout -->
+                <a href="<?= base_url('/logout') ?>"
+                   class="nav-link-burjo"
+                   style="background:rgba(231,76,60,0.2); color:#ff8a80 !important;"
+                   onclick="return confirm('Yakin mau logout?')">
+                    <i class="bi bi-box-arrow-right me-1"></i>Logout
+                </a>
+                <?php endif; ?>
+
             </div>
         </div>
     </div>

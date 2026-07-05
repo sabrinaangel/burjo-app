@@ -11,6 +11,7 @@ use CodeIgniter\Filters\Honeypot;
 use CodeIgniter\Filters\InvalidChars;
 use CodeIgniter\Filters\PageCache;
 use CodeIgniter\Filters\PerformanceMetrics;
+use App\Filters\AuthFilter;
 use CodeIgniter\Filters\SecureHeaders;
 
 class Filters extends BaseFilters
@@ -33,6 +34,7 @@ class Filters extends BaseFilters
         'cors'          => Cors::class,
         'forcehttps'    => ForceHTTPS::class,
         'pagecache'     => PageCache::class,
+        'auth' => AuthFilter::class,
         'performance'   => PerformanceMetrics::class,
     ];
 
@@ -106,5 +108,17 @@ class Filters extends BaseFilters
      *
      * @var array<string, array<string, list<string>>>
      */
-    public array $filters = [];
+    public array $filters = [
+    'auth' => [
+        'before' => [
+            'menu',
+            'menu/*',
+            'pelanggan',
+            'pelanggan/*',
+            'logout',
+            'settings',
+            'settings/*',
+        ],
+    ],
+];
 }

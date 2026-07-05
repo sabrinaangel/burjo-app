@@ -41,6 +41,9 @@ class MenuController extends BaseController
         $jumlahMakanan = $this->menuModel->where('kategori', 'Makanan')->countAllResults();
         $jumlahMinuman = $this->menuModel->where('kategori', 'Minuman')->countAllResults();
 
+        // Hitung jumlah item di sampah (soft deleted)
+        $trashCount = $this->menuModel->onlyDeleted()->countAllResults();
+
         // Kirim data ke view
         $data = [
             'title'         => 'Daftar Menu - Burjo Ku',
@@ -49,6 +52,7 @@ class MenuController extends BaseController
             'jumlahMakanan' => $jumlahMakanan,
             'jumlahMinuman' => $jumlahMinuman,
             'totalMenu'     => count($menu),
+            'trashCount'    => $trashCount,
         ];
 
         return view('menu/index', $data);
@@ -98,6 +102,14 @@ class MenuController extends BaseController
             ],
         ];
 
+        // Validasi tambahan untuk file gambar (opsional)
+        $rules['gambar'] = 'permit_empty|uploaded[gambar]|max_size[gambar,2048]|is_image[gambar]|mime_in[gambar,image/jpg,image/jpeg,image/png,image/webp]';
+        $messages['gambar'] = [
+            'max_size'  => 'Ukuran foto maksimal 2MB.',
+            'is_image'  => 'File harus berupa gambar.',
+            'mime_in'   => 'Format foto harus JPG, PNG, atau WebP.',
+        ];
+
         // Jika validasi gagal, kembalikan ke form dengan error
         if (!$this->validate($rules, $messages)) {
             return view('menu/create', [
@@ -106,16 +118,31 @@ class MenuController extends BaseController
             ]);
         }
 
+        // Proses upload gambar jika ada file yang diunggah
+        $namaFile = null;
+        $fileFoto = $this->request->getFile('gambar');
+        if ($fileFoto && $fileFoto->isValid() && !$fileFoto->hasMoved()) {
+            // Buat folder upload jika belum ada
+            $folderUpload = FCPATH . 'uploads/menu/';
+            if (!is_dir($folderUpload)) {
+                mkdir($folderUpload, 0755, true);
+            }
+            // Beri nama unik agar tidak bertabrakan
+            $namaFile = 'menu_' . time() . '_' . uniqid() . '.' . $fileFoto->getExtension();
+            $fileFoto->move($folderUpload, $namaFile);
+        }
+
         // Simpan data ke database
         $this->menuModel->save([
             'nama_menu' => $this->request->getPost('nama_menu'),
             'kategori'  => $this->request->getPost('kategori'),
             'harga'     => (int) $this->request->getPost('harga'),
             'deskripsi' => $this->request->getPost('deskripsi'),
+            'gambar'    => $namaFile, // null jika tidak ada foto
         ]);
 
         // Set flash message sukses
-        session()->setFlashdata('success', 'Menu <strong>' . esc($this->request->getPost('nama_menu')) . '</strong> berhasil ditambahkan! 🎉');
+        session()->setFlashdata('success', 'Menu <strong>' . esc($this->request->getPost('nama_menu')) . '</strong> berhasil ditambahkan!');
 
         return redirect()->to('/menu');
     }
@@ -179,6 +206,14 @@ class MenuController extends BaseController
             ],
         ];
 
+        // Validasi tambahan untuk file gambar (opsional saat update)
+        $rules['gambar'] = 'permit_empty|uploaded[gambar]|max_size[gambar,2048]|is_image[gambar]|mime_in[gambar,image/jpg,image/jpeg,image/png,image/webp]';
+        $messages['gambar'] = [
+            'max_size' => 'Ukuran foto maksimal 2MB.',
+            'is_image' => 'File harus berupa gambar.',
+            'mime_in'  => 'Format foto harus JPG, PNG, atau WebP.',
+        ];
+
         // Jika validasi gagal, kembalikan ke form edit dengan error
         if (!$this->validate($rules, $messages)) {
             return view('menu/edit', [
@@ -188,16 +223,38 @@ class MenuController extends BaseController
             ]);
         }
 
+        // Proses upload gambar baru jika ada file yang diunggah
+        $namaFileBaru = $menu['gambar']; // default: pakai gambar lama
+        $fileFoto     = $this->request->getFile('gambar');
+        if ($fileFoto && $fileFoto->isValid() && !$fileFoto->hasMoved()) {
+            // Hapus gambar lama dari server jika ada
+            if (!empty($menu['gambar'])) {
+                $pathLama = FCPATH . 'uploads/menu/' . $menu['gambar'];
+                if (file_exists($pathLama)) {
+                    unlink($pathLama);
+                }
+            }
+            // Buat folder upload jika belum ada
+            $folderUpload = FCPATH . 'uploads/menu/';
+            if (!is_dir($folderUpload)) {
+                mkdir($folderUpload, 0755, true);
+            }
+            // Simpan file baru dengan nama unik
+            $namaFileBaru = 'menu_' . time() . '_' . uniqid() . '.' . $fileFoto->getExtension();
+            $fileFoto->move($folderUpload, $namaFileBaru);
+        }
+
         // Update data di database
         $this->menuModel->update($id, [
             'nama_menu' => $this->request->getPost('nama_menu'),
             'kategori'  => $this->request->getPost('kategori'),
             'harga'     => (int) $this->request->getPost('harga'),
             'deskripsi' => $this->request->getPost('deskripsi'),
+            'gambar'    => $namaFileBaru,
         ]);
 
         // Set flash message sukses
-        session()->setFlashdata('success', 'Menu <strong>' . esc($this->request->getPost('nama_menu')) . '</strong> berhasil diperbarui! ✏️');
+        session()->setFlashdata('success', 'Menu <strong>' . esc($this->request->getPost('nama_menu')) . '</strong> berhasil diperbarui!');
 
         return redirect()->to('/menu');
     }
@@ -222,9 +279,72 @@ class MenuController extends BaseController
         // Hapus data dari database
         $this->menuModel->delete($id);
 
-        // Set flash message sukses
-        session()->setFlashdata('success', 'Menu <strong>' . esc($namaMenu) . '</strong> berhasil dihapus! 🗑️');
+        // Set flash message sukses (soft delete)
+        session()->setFlashdata('success', 'Menu <strong>' . esc($namaMenu) . '</strong> dipindahkan ke sampah. <a href="' . base_url('/menu/trash') . '">Lihat Sampah</a>');
 
         return redirect()->to('/menu');
+    }
+
+    // ===================================================================
+    // TRASH (GET) - Tampilkan menu yang sudah di-soft delete
+    // ===================================================================
+    public function trash(): string
+    {
+        // Ambil hanya data yang sudah di-soft delete, diurutkan terbaru
+        $menu = $this->menuModel->onlyDeleted()
+                                ->orderBy('deleted_at', 'DESC')
+                                ->findAll();
+
+        $data = [
+            'title' => 'Sampah Menu - Burjo Ku',
+            'menu'  => $menu,
+        ];
+
+        return view('menu/trash', $data);
+    }
+
+    // ===================================================================
+    // RESTORE (POST) - Pulihkan menu dari sampah kembali ke aktif
+    // ===================================================================
+    public function restore(int $id)
+    {
+        // Cari data termasuk yang sudah di-soft delete
+        $menu = $this->menuModel->withDeleted()->find($id);
+
+        // Pastikan data ada dan memang sudah dihapus (deleted_at tidak null)
+        if (!$menu || empty($menu['deleted_at'])) {
+            session()->setFlashdata('error', 'Data tidak ditemukan di sampah.');
+            return redirect()->to('/menu/trash');
+        }
+
+        // Pulihkan data (set deleted_at = NULL)
+        $this->menuModel->restore($id);
+
+        session()->setFlashdata('success', 'Menu <strong>' . esc($menu['nama_menu']) . '</strong> berhasil dipulihkan! ♻️');
+
+        return redirect()->to('/menu/trash');
+    }
+
+    // ===================================================================
+    // FORCE DELETE (POST) - Hapus menu secara permanen dari sampah
+    // ===================================================================
+    public function forceDelete(int $id)
+    {
+        // Cari data termasuk yang sudah di-soft delete
+        $menu = $this->menuModel->withDeleted()->find($id);
+
+        if (!$menu) {
+            session()->setFlashdata('error', 'Data tidak ditemukan.');
+            return redirect()->to('/menu/trash');
+        }
+
+        $namaMenu = $menu['nama_menu'];
+
+        // Hapus permanen dari database (parameter ke-2 true = force/hard delete)
+        $this->menuModel->delete($id, true);
+
+        session()->setFlashdata('success', 'Menu <strong>' . esc($namaMenu) . '</strong> dihapus permanen! 🗑️');
+
+        return redirect()->to('/menu/trash');
     }
 }

@@ -33,7 +33,8 @@
 
                 <!-- FORM CARD -->
                 <div class="card-burjo p-4">
-                    <form action="<?= base_url('/menu/store') ?>" method="POST" novalidate id="form-tambah-menu">
+                    <form action="<?= base_url('/menu/store') ?>" method="POST"
+                          enctype="multipart/form-data" novalidate id="form-tambah-menu">
                         <?= csrf_field() ?>
 
                         <!-- ── NAMA MENU ── -->
@@ -124,6 +125,48 @@
                             <?php endif; ?>
                         </div>
 
+                        <!-- ── FOTO MENU ── -->
+                        <div class="mb-5">
+                            <label for="gambar" class="form-label-burjo">
+                                <i class="bi bi-image-fill me-1" style="color: var(--accent);"></i>
+                                Foto Menu
+                                <span style="color: var(--text-muted); font-weight: 400; font-size: 0.8rem;">(opsional)</span>
+                            </label>
+
+                            <!-- Area drop/klik upload -->
+                            <div id="upload-area" onclick="document.getElementById('gambar').click()" style="
+                                border: 2px dashed #d0d0d0;
+                                border-radius: 12px;
+                                padding: 24px;
+                                text-align: center;
+                                cursor: pointer;
+                                background: #fafafa;
+                                transition: all 0.3s ease;
+                            ">
+                                <!-- Preview gambar (tersembunyi awalnya) -->
+                                <img id="preview-gambar" src="#" alt="Preview"
+                                     style="display:none; max-height:180px; max-width:100%; border-radius:8px; margin-bottom:10px; object-fit:cover;">
+
+                                <!-- Placeholder ikon -->
+                                <div id="upload-placeholder">
+                                    <i class="bi bi-cloud-upload" style="font-size:2.5rem; color:#ccc;"></i>
+                                    <p style="margin:8px 0 4px; font-size:.875rem; color:var(--text-muted); font-weight:500;">Klik untuk pilih foto</p>
+                                    <p style="font-size:.75rem; color:#aaa; margin:0;">JPG, PNG, WebP · Maks. 2MB</p>
+                                </div>
+                            </div>
+
+                            <input type="file" name="gambar" id="gambar"
+                                   accept="image/jpg,image/jpeg,image/png,image/webp"
+                                   style="display:none;"
+                                   onchange="previewGambar(this)">
+
+                            <?php if ($validation->hasError('gambar')): ?>
+                                <div class="invalid-feedback d-block mt-1">
+                                    <i class="bi bi-exclamation-circle me-1"></i>
+                                    <?= $validation->getError('gambar') ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
                         <!-- ── DESKRIPSI ── -->
                         <div class="mb-5">
                             <label for="deskripsi" class="form-label-burjo">
@@ -175,3 +218,27 @@
 </section>
 
 <?php include APPPATH . 'Views/templates/footer.php'; ?>
+
+<script>
+/**
+ * Fungsi preview gambar sebelum diupload
+ * Dipanggil dari input file onchange
+ */
+function previewGambar(input) {
+    const preview     = document.getElementById('preview-gambar');
+    const placeholder = document.getElementById('upload-placeholder');
+    const area        = document.getElementById('upload-area');
+
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.src             = e.target.result;
+            preview.style.display   = 'block';
+            placeholder.style.display = 'none';
+            area.style.borderColor  = 'var(--primary)';
+            area.style.background   = 'rgba(45,90,39,0.04)';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
